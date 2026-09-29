@@ -3,206 +3,324 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DebtTrack - Borrower & Payment Manager</title>
-    <!-- Tailwind CSS -->
+    <title>DebtTrack - Cozy Money Manager</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cream: {
+                            50: '#FFFDF9',
+                            100: '#FAF6EE',
+                            200: '#F3EBDC',
+                            300: '#E8DCC4',
+                        },
+                        cozyDark: {
+                            800: '#232526',
+                            900: '#1A1C1D',
+                            700: '#2C2E30'
+                        },
+                        pastelRed: '#F87171',
+                        pastelGreen: '#4ADE80',
+                        pastelBlue: '#60A5FA',
+                        pastelYellow: '#FBBF24',
+                        pastelPurple: '#C084FC'
+                    },
+                    fontFamily: {
+                        sans: ['Nunito', 'Comfortaa', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome Icons & Google Nunito Font -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Nunito', sans-serif; }
+        .cozy-card {
+            box-shadow: 0 4px 20px -2px rgba(210, 190, 160, 0.25);
+        }
+        .dark .cozy-card {
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+        }
+    </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+<body class="bg-cream-100 dark:bg-cozyDark-900 text-slate-700 dark:text-slate-200 transition-colors duration-300 min-h-screen pb-12">
 
-    <!-- Header Navigation Bar -->
-    <nav class="bg-indigo-700 text-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <i class="fa-solid fa-wallet text-2xl text-indigo-200"></i>
-                <h1 class="text-2xl font-bold tracking-tight">DebtTrack</h1>
-            </div>
-            <span class="text-xs bg-indigo-800 text-indigo-200 px-3 py-1 rounded-full font-semibold uppercase tracking-wider">
-                Production Ready
-            </span>
-        </div>
-    </nav>
-
-    <!-- Main Container -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-
-        <!-- Summary Statistics Grid -->
-        <div id="statsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <!-- Stats cards will render here dynamically -->
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 col-span-full text-center text-slate-400">
-                <i class="fa-solid fa-circle-notch animate-spin mr-2"></i> Loading metrics...
-            </div>
-        </div>
-
-        <!-- Loans Table Card -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <div>
-                    <h2 class="text-lg font-bold text-slate-800">Borrowers & Active Loans</h2>
-                    <p class="text-xs text-slate-500">Manage active obligations and send manual payment reminders</p>
+    <!-- Top Sticky Header Navigation -->
+    <header class="bg-cream-50/80 dark:bg-cozyDark-800/80 backdrop-blur-md sticky top-0 z-40 border-b border-cream-200 dark:border-cozyDark-700">
+        <div class="max-w-4xl mx-auto px-4 py-3.5 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl shadow-sm">
+                    <i class="fa-solid fa-cat"></i>
                 </div>
-                <button onclick="loadDashboard()" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 transition">
-                    <i class="fa-solid fa-rotate-right text-xs"></i> Refresh
+                <div>
+                    <h1 class="text-xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight leading-tight">DebtTrack</h1>
+                    <p class="text-xs font-semibold text-amber-700/70 dark:text-amber-400/70">Cozy Borrower Ledger</p>
+                </div>
+            </div>
+
+            <!-- Action Controls & Dark Mode Toggle -->
+            <div class="flex items-center gap-2">
+                <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-xl bg-cream-200 dark:bg-cozyDark-700 text-slate-600 dark:text-amber-300 flex items-center justify-center hover:scale-105 transition active:scale-95">
+                    <i id="themeIcon" class="fa-solid fa-moon"></i>
+                </button>
+                <button onclick="loadDashboard()" class="w-9 h-9 rounded-xl bg-amber-200/60 dark:bg-amber-800/40 text-amber-800 dark:text-amber-200 flex items-center justify-center hover:scale-105 transition active:scale-95">
+                    <i class="fa-solid fa-rotate-right text-sm"></i>
                 </button>
             </div>
+        </div>
+    </header>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-sm">
-                    <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-xs tracking-wider">
-                            <th class="py-3 px-4">Borrower</th>
-                            <th class="py-3 px-4">Phone</th>
-                            <th class="py-3 px-4">Principal</th>
-                            <th class="py-3 px-4">Due Date</th>
-                            <th class="py-3 px-4">Status</th>
-                            <th class="py-3 px-4 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="loanTableBody" class="divide-y divide-slate-100">
-                        <tr>
-                            <td colspan="6" class="py-8 text-center text-slate-400">
-                                <i class="fa-solid fa-circle-notch animate-spin mr-2"></i> Loading records...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+    <!-- Main Dashboard Body -->
+    <main class="max-w-4xl mx-auto px-4 pt-6 space-y-6">
+
+        <!-- Top Header Stats Banner (Cozy Warm Cards) -->
+        <div id="statsBanner" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="col-span-full text-center py-6 text-slate-400">
+                <i class="fa-solid fa-paw animate-bounce text-2xl text-amber-400"></i>
+                <p class="text-xs font-bold mt-2">Loading ledger stats...</p>
+            </div>
+        </div>
+
+        <!-- Quick Ledger Summary Pill -->
+        <div class="bg-cream-50 dark:bg-cozyDark-800 cozy-card p-4 rounded-3xl border border-cream-200 dark:border-cozyDark-700 flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <i class="fa-solid fa-vault text-sm"></i>
+                </div>
+                <div>
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total Capital Lent</span>
+                    <span id="totalCapitalText" class="text-lg font-black text-slate-800 dark:text-slate-100">₱0.00</span>
+                </div>
+            </div>
+            <button onclick="loadDashboard()" class="px-4 py-2 rounded-2xl bg-amber-400 hover:bg-amber-500 text-slate-900 font-extrabold text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5">
+                <i class="fa-solid fa-plus text-xs"></i> New Ledger Entry
+            </button>
+        </div>
+
+        <!-- Borrowers & Active Loans List -->
+        <div class="space-y-3">
+            <div class="flex justify-between items-center px-1">
+                <h2 class="text-base font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark text-amber-500"></i> Active Borrowers
+                </h2>
+                <span id="recordCount" class="text-xs font-bold text-slate-400 bg-cream-200 dark:bg-cozyDark-700 px-2.5 py-1 rounded-full">0 Records</span>
+            </div>
+
+            <div id="loanListContainer" class="space-y-3">
+                <!-- Loan Cards will render dynamically here -->
+                <div class="bg-cream-50 dark:bg-cozyDark-800 cozy-card p-8 rounded-3xl border border-cream-200 dark:border-cozyDark-700 text-center text-slate-400">
+                    <i class="fa-solid fa-spinner animate-spin text-xl text-amber-400 mb-2"></i>
+                    <p class="text-xs font-bold">Fetching records...</p>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- Borrower Detail Modal -->
-    <div id="borrowerModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 transform transition-all">
-            <div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center">
-                <h3 class="font-bold text-slate-800 flex items-center gap-2">
-                    <i class="fa-solid fa-user-gear text-indigo-600"></i>
-                    Borrower Details
-                </h3>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition">
-                    <i class="fa-solid fa-xmark text-lg"></i>
+    <!-- Borrower Detail & Custom Reminder Modal -->
+    <div id="borrowerModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-cream-50 dark:bg-cozyDark-800 cozy-card rounded-3xl max-w-sm w-full overflow-hidden border border-cream-200 dark:border-cozyDark-700 transform transition-all p-6 space-y-4">
+            
+            <div class="flex justify-between items-center border-b border-cream-200 dark:border-cozyDark-700 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-2xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                        <i class="fa-solid fa-user-gear"></i>
+                    </div>
+                    <h3 class="font-extrabold text-slate-800 dark:text-slate-100">Borrower Info</h3>
+                </div>
+                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-cream-200 dark:bg-cozyDark-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <div class="p-5 space-y-3 text-sm">
-                <div class="flex justify-between py-1 border-b border-slate-100">
-                    <span class="text-slate-500 font-medium">Borrower Name</span>
-                    <span id="modalName" class="font-semibold text-slate-800"></span>
+            <div class="space-y-2.5 text-xs font-bold">
+                <div class="flex justify-between p-2 rounded-xl bg-cream-100 dark:bg-cozyDark-700/50">
+                    <span class="text-slate-400">Borrower Name</span>
+                    <span id="modalName" class="text-slate-800 dark:text-slate-100"></span>
                 </div>
-                <div class="flex justify-between py-1 border-b border-slate-100">
-                    <span class="text-slate-500 font-medium">Phone Number</span>
-                    <span id="modalPhone" class="font-semibold text-slate-800"></span>
+                <div class="flex justify-between p-2 rounded-xl bg-cream-100 dark:bg-cozyDark-700/50">
+                    <span class="text-slate-400">Phone Number</span>
+                    <span id="modalPhone" class="text-slate-800 dark:text-slate-100"></span>
                 </div>
-                <div class="flex justify-between py-1 border-b border-slate-100">
-                    <span class="text-slate-500 font-medium">Email Address</span>
-                    <span id="modalEmail" class="font-semibold text-slate-800"></span>
+                <div class="flex justify-between p-2 rounded-xl bg-cream-100 dark:bg-cozyDark-700/50">
+                    <span class="text-slate-400">Email</span>
+                    <span id="modalEmail" class="text-slate-800 dark:text-slate-100"></span>
                 </div>
-                <div class="flex justify-between py-1 border-b border-slate-100">
-                    <span class="text-slate-500 font-medium">Principal Loan</span>
-                    <span class="font-semibold text-slate-800">₱<span id="modalAmount"></span></span>
+                <div class="flex justify-between p-2 rounded-xl bg-cream-100 dark:bg-cozyDark-700/50">
+                    <span class="text-slate-400">Principal</span>
+                    <span class="text-amber-600 dark:text-amber-400">₱<span id="modalAmount"></span></span>
                 </div>
-                <div class="flex justify-between py-1 border-b border-slate-100">
-                    <span class="text-slate-500 font-medium">Due Date</span>
-                    <span id="modalDueDate" class="font-semibold text-slate-800"></span>
+                <div class="flex justify-between p-2 rounded-xl bg-cream-100 dark:bg-cozyDark-700/50">
+                    <span class="text-slate-400">Due Date</span>
+                    <span id="modalDueDate" class="text-slate-800 dark:text-slate-100"></span>
                 </div>
 
-                <!-- Custom Manual Reminder Trigger Controls -->
-                <div class="mt-4 p-4 bg-indigo-50/60 border border-indigo-100 rounded-lg space-y-2">
-                    <label class="block text-xs font-bold text-indigo-900 uppercase tracking-wide">
-                        <i class="fa-solid fa-paper-plane mr-1 text-indigo-600"></i> Dispatch Custom Reminder
-                    </label>
+                <!-- Custom Reminder Selector -->
+                <div class="pt-2">
+                    <label class="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Dispatch Custom Reminder</label>
                     <div class="flex gap-2">
-                        <select id="reminderChannel" class="bg-white border border-slate-300 text-slate-700 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none flex-grow">
+                        <select id="reminderChannel" class="bg-cream-100 dark:bg-cozyDark-700 text-slate-700 dark:text-slate-200 border-none text-xs rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-amber-400 outline-none flex-grow font-bold">
                             <option value="both">Both (SMS & Email)</option>
                             <option value="sms">SMS Only</option>
                             <option value="email">Email Only</option>
                         </select>
-                        <button type="button" onclick="triggerManualReminder()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+                        <button type="button" onclick="triggerManualReminder()" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-extrabold px-4 py-2.5 rounded-xl transition shadow-sm active:scale-95">
                             Send
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 text-right">
-                <button onclick="closeModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold px-4 py-2 rounded-lg transition">
-                    Close
-                </button>
-            </div>
+            <button onclick="closeModal()" class="w-full bg-cream-200 dark:bg-cozyDark-700 text-slate-600 dark:text-slate-300 font-extrabold text-xs py-2.5 rounded-xl transition">
+                Close
+            </button>
         </div>
     </div>
 
+    <!-- Application JavaScript Logic -->
     <script>
         let selectedLoanId = null;
+
+        // Dark Mode Toggle Logic
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.className = 'fa-solid fa-moon';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                icon.className = 'fa-solid fa-sun';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Initialize saved theme on load
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.getElementById('themeIcon').className = 'fa-solid fa-sun';
+        }
 
         async function loadDashboard() {
             try {
                 const res = await fetch('/api/dashboard');
                 const data = await res.json();
 
-                // Render Tailored Summary Cards
-                document.getElementById('statsGrid').innerHTML = `
-                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Borrowers</p>
-                        <p class="text-2xl font-bold text-slate-800 mt-1">${data.stats.totalBorrowers}</p>
+                // Update Total Capital
+                document.getElementById('totalCapitalText').innerText = `₱${data.stats.totalCapitalLent.toLocaleString()}`;
+                document.getElementById('recordCount').innerText = `${data.loans.length} Records`;
+
+                // Render Top Pastel Header Stats
+                document.getElementById('statsBanner').innerHTML = `
+                    <div class="bg-amber-100/70 dark:bg-amber-900/30 p-3.5 rounded-2xl border border-amber-200/60 dark:border-amber-800/40 text-amber-900 dark:text-amber-200">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-users text-amber-600 text-xs"></i>
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-700/80 dark:text-amber-300/80">Borrowers</span>
+                        </div>
+                        <p class="text-xl font-black">${data.stats.totalBorrowers}</p>
                     </div>
-                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Capital Lent</p>
-                        <p class="text-2xl font-bold text-indigo-600 mt-1">₱${data.stats.totalCapitalLent.toLocaleString()}</p>
+                    <div class="bg-blue-100/70 dark:bg-blue-900/30 p-3.5 rounded-2xl border border-blue-200/60 dark:border-blue-800/40 text-blue-900 dark:text-blue-200">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-circle-check text-blue-600 text-xs"></i>
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-blue-700/80 dark:text-blue-300/80">Active</span>
+                        </div>
+                        <p class="text-xl font-black">${data.stats.activeCount}</p>
                     </div>
-                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Loans</p>
-                        <p class="text-2xl font-bold text-blue-600 mt-1">${data.stats.activeCount}</p>
+                    <div class="bg-orange-100/70 dark:bg-orange-900/30 p-3.5 rounded-2xl border border-orange-200/60 dark:border-orange-800/40 text-orange-900 dark:text-orange-200">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-clock text-orange-600 text-xs"></i>
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-orange-700/80 dark:text-orange-300/80">Due Today</span>
+                        </div>
+                        <p class="text-xl font-black">${data.stats.dueTodayCount}</p>
                     </div>
-                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Due Today</p>
-                        <p class="text-2xl font-bold text-amber-500 mt-1">${data.stats.dueTodayCount}</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Overdue</p>
-                        <p class="text-2xl font-bold text-rose-600 mt-1">${data.stats.overdueCount}</p>
+                    <div class="bg-rose-100/70 dark:bg-rose-900/30 p-3.5 rounded-2xl border border-rose-200/60 dark:border-rose-800/40 text-rose-900 dark:text-rose-200">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-triangle-exclamation text-rose-600 text-xs"></i>
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-rose-700/80 dark:text-rose-300/80">Overdue</span>
+                        </div>
+                        <p class="text-xl font-black">${data.stats.overdueCount}</p>
                     </div>
                 `;
 
-                // Status Badge Helper
-                const getBadge = (status) => {
-                    if (status === 'Overdue') return `<span class="bg-rose-100 text-rose-700 font-semibold px-2.5 py-1 rounded-full text-xs">Overdue</span>`;
-                    if (status === 'Due Today') return `<span class="bg-amber-100 text-amber-700 font-semibold px-2.5 py-1 rounded-full text-xs">Due Today</span>`;
-                    if (status === 'Paid') return `<span class="bg-emerald-100 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-xs">Paid</span>`;
-                    return `<span class="bg-blue-100 text-blue-700 font-semibold px-2.5 py-1 rounded-full text-xs">Active</span>`;
-                };
-
-                // Render Styled Table Rows
-                const tbody = document.getElementById('loanTableBody');
+                // Render Cards with Cute Icons & Status Badges
+                const container = document.getElementById('loanListContainer');
                 if (data.loans.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400">No active loans found.</td></tr>`;
+                    container.innerHTML = `
+                        <div class="bg-cream-50 dark:bg-cozyDark-800 p-8 rounded-3xl border border-cream-200 dark:border-cozyDark-700 text-center text-slate-400">
+                            <p class="text-xs font-bold">No borrower ledgers found!</p>
+                        </div>
+                    `;
                     return;
                 }
 
-                tbody.innerHTML = data.loans.map(loan => `
-                    <tr class="hover:bg-slate-50/80 transition">
-                        <td class="py-3 px-4 font-semibold text-slate-800">${loan.borrowers.name}</td>
-                        <td class="py-3 px-4 text-slate-600">${loan.borrowers.phone || '<span class="text-slate-300">N/A</span>'}</td>
-                        <td class="py-3 px-4 font-semibold text-slate-700">₱${parseFloat(loan.principal_amount).toLocaleString()}</td>
-                        <td class="py-3 px-4 text-slate-600">${loan.due_date}</td>
-                        <td class="py-3 px-4">${getBadge(loan.status)}</td>
-                        <td class="py-3 px-4 text-right space-x-1">
-                            <button 
-                                onclick="openModal('${loan.id}', '${loan.borrowers.name}', '${loan.borrowers.phone || ''}', '${loan.borrowers.email || ''}', '${loan.principal_amount}', '${loan.due_date}')"
-                                class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-1.5 px-3 rounded-lg text-xs transition border border-slate-200"
-                            >
-                                <i class="fa-solid fa-eye mr-1"></i> View
-                            </button>
-                            <button 
-                                onclick="quickRemind('${loan.id}', '${loan.borrowers.name}')"
-                                class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-1.5 px-3 rounded-lg text-xs transition shadow-sm"
-                            >
-                                <i class="fa-solid fa-bolt mr-1"></i> Remind
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
+                container.innerHTML = data.loans.map(loan => {
+                    let statusBadge = `<span class="bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase">Active</span>`;
+                    let iconBg = `bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400`;
+
+                    if (loan.status === 'Overdue') {
+                        statusBadge = `<span class="bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase">Overdue</span>`;
+                        iconBg = `bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400`;
+                    } else if (loan.status === 'Due Today') {
+                        statusBadge = `<span class="bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase">Due Today</span>`;
+                        iconBg = `bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400`;
+                    } else if (loan.status === 'Paid') {
+                        statusBadge = `<span class="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase">Paid</span>`;
+                        iconBg = `bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400`;
+                    }
+
+                    return `
+                        <div class="bg-cream-50 dark:bg-cozyDark-800 cozy-card p-4 rounded-3xl border border-cream-200 dark:border-cozyDark-700 flex items-center justify-between gap-3 hover:scale-[1.01] transition">
+                            <div class="flex items-center gap-3">
+                                <div class="w-11 h-11 rounded-2xl ${iconBg} flex items-center justify-center text-lg shadow-sm flex-shrink-0">
+                                    <i class="fa-solid fa-wallet"></i>
+                                </div>
+                                <div class="space-y-0.5">
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-extrabold text-slate-800 dark:text-slate-100 text-sm">${loan.borrowers.name}</h3>
+                                        ${statusBadge}
+                                    </div>
+                                    <p class="text-xs font-bold text-slate-400 flex items-center gap-2">
+                                        <span><i class="fa-solid fa-phone text-[10px] mr-1"></i>${loan.borrowers.phone || 'N/A'}</span>
+                                        <span>•</span>
+                                        <span><i class="fa-solid fa-calendar text-[10px] mr-1"></i>${loan.due_date}</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <div class="text-right">
+                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Principal</span>
+                                    <span class="text-sm font-black text-slate-800 dark:text-slate-100">₱${parseFloat(loan.principal_amount).toLocaleString()}</span>
+                                </div>
+
+                                <div class="flex items-center gap-1.5">
+                                    <button 
+                                        onclick="openModal('${loan.id}', '${loan.borrowers.name}', '${loan.borrowers.phone || ''}', '${loan.borrowers.email || ''}', '${loan.principal_amount}', '${loan.due_date}')"
+                                        class="w-8 h-8 rounded-xl bg-cream-200 dark:bg-cozyDark-700 text-slate-600 dark:text-slate-300 hover:bg-cream-300 dark:hover:bg-cozyDark-600 flex items-center justify-center transition active:scale-95"
+                                        title="View Details"
+                                    >
+                                        <i class="fa-solid fa-eye text-xs"></i>
+                                    </button>
+                                    <button 
+                                        onclick="quickRemind('${loan.id}', '${loan.borrowers.name}')"
+                                        class="w-8 h-8 rounded-xl bg-emerald-400 hover:bg-emerald-500 text-slate-900 font-bold flex items-center justify-center transition active:scale-95 shadow-sm"
+                                        title="Send Quick Reminder"
+                                    >
+                                        <i class="fa-solid fa-bolt text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             } catch (err) {
-                console.error("Dashboard load error:", err);
+                console.error("Dashboard error:", err);
             }
         }
 
@@ -227,7 +345,7 @@
         }
 
         async function quickRemind(loanId, borrowerName) {
-            if (!confirm(`Send immediate SMS & Email reminder to ${borrowerName}?`)) return;
+            if (!confirm(`Send instant SMS & Email reminder to ${borrowerName}?`)) return;
 
             try {
                 const response = await fetch(`/api/loans/${loanId}/send-reminder`, {
@@ -237,11 +355,7 @@
                 });
 
                 const result = await response.json();
-                if (response.ok) {
-                    alert(result.message);
-                } else {
-                    alert(`Error: ${result.error}`);
-                }
+                alert(response.ok ? result.message : `Error: ${result.error}`);
             } catch (err) {
                 alert(`Failed to send reminder: ${err.message}`);
             }
@@ -259,11 +373,7 @@
                 });
 
                 const result = await response.json();
-                if (response.ok) {
-                    alert(result.message);
-                } else {
-                    alert(`Error: ${result.error}`);
-                }
+                alert(response.ok ? result.message : `Error: ${result.error}`);
             } catch (err) {
                 alert(`Failed to send reminder: ${err.message}`);
             }
