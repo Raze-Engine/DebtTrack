@@ -1,0 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+    /* Light Theme - Soft Cream/Beige & Playful Pastels */
+    --bg-primary: #FDF6E2;
+    --card-bg: #FFFBF0;
+    --card-border: #F3E2C2;
+    --text-primary: #2B2319;
+    --text-muted: #8C7A6B;
+    
+    /* Soft 3D Pill Shadows */
+    --shadow-3d: 0px 8px 16px rgba(139, 115, 85, 0.08), 0px 3px 0px #EBD5B3;
+    --shadow-fab: 0px 10px 20px rgba(224, 102, 102, 0.35), 0px 4px 0px #C0392B;
+    
+    /* Pastels & Statuses */
+    --accent-red: #E06666;
+    --accent-coral: #F4A261;
+    --accent-green: #A8E6CF;
+    --accent-blue: #AED9E0;
+    --accent-purple: #D7BCE8;
+    --accent-yellow: #FFEAA7;
+}
+
+.dark {
+    /* Dark Theme - Sleek Charcoal / OLED Black */
+    --bg-primary: #1C1C1E;
+    --card-bg: #2C2C2E;
+    --card-border: #3A3A3C;
+    --text-primary: #F2F2F7;
+    --text-muted: #8E8E93;
+    
+    /* Dark Mode 3D Shadows */
+    --shadow-3d: 0px 8px 16px rgba(0, 0, 0, 0.4), 0px 3px 0px #121214;
+    --shadow-fab: 0px 10px 20px rgba(224, 102, 102, 0.25), 0px 4px 0px #902B2B;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    min-height: 100vh;
+}
+
+/* Semi-3D Floating Glass/Pill Container */
+.glass-3d-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-3d);
+    border-radius: 1.5rem; /* Ultra rounded pill-style corners */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-3d-card:hover {
+    transform: translateY(-3px);
+}
+
+/* Color-Coded Status Pills */
+.badge-active {
+    background: #D4EDDA;
+    color: #155724;
+    border: 1px solid #C3E6CB;
+}
+
+.badge-due {
+    background: #FFF3CD;
+    color: #856404;
+    border: 1px solid #FFEEBA;
+}
+
+.badge-overdue {
+    background: #F8D7DA;
+    color: #721C24;
+    border: 1px solid #F5C6CB;
+}
+
+.dark .badge-active {
+    background: rgba(168, 230, 207, 0.15);
+    color: #A8E6CF;
+    border: 1px solid rgba(168, 230, 207, 0.3);
+}
+
+.dark .badge-due {
+    background: rgba(255, 234, 167, 0.15);
+    color: #FFEAA7;
+    border: 1px solid rgba(255, 234, 167, 0.3);
+}
+
+.dark .badge-overdue {
+    background: rgba(224, 102, 102, 0.15);
+    color: #E06666;
+    border: 1px solid rgba(224, 102, 102, 0.3);
+}
+
+/* Rounded 3D Floating Action Button (+) */
+.fab-btn {
+    background-color: var(--accent-red) !important;
+    box-shadow: var(--shadow-fab);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fab-btn:active {
+    transform: translateY(3px) scale(0.96);
+    box-shadow: 0px 4px 10px rgba(224, 102, 102, 0.3);
+}
+
+/* Rounded Inputs & Custom Form Styling */
+input, select {
+    border-radius: 1rem !important;
+    font-weight: 600;
+}
+
+/* Smooth Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--card-border);
+    border-radius: 10px;
+}
