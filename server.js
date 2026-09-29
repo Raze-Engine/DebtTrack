@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
-const twilio = require('twilio');
 const nodemailer = require('nodemailer');
 const cron = require('node-cron');
 const path = require('path');
@@ -14,7 +13,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Initialize Services
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -23,6 +21,39 @@ const transporter = nodemailer.createTransport({
         pass: process.env.GMAIL_PASS
     }
 });
+
+/**
+ * Sends SMS using the Cloud SMS Gateway API App
+ */
+async function sendSmsViaPersonalPhone(toPhone, messageText) {
+    if (!process.env.SMS_GATEWAY_URL || !process.env.SMS_GATEWAY_KEY) {
+        console.log("[SMS Gateway] Gateway URL or API Key missing in .env");
+        return;
+    }
+
+    try {
+        const response = await fetch(process.env.SMS_GATEWAY_URL, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-API-Key': process.env.SMS_GATEWAY_KEY
+            },
+            body: JSON.stringify({
+                to: toPhone,
+                message: messageText
+            })
+        });
+
+        if (response.ok) {
+            console.log(`[SMS Gateway] SMS successfully queued to ${toPhone}`);
+        } else {
+            const errText = await response.text();
+            console.error(`[SMS Gateway Error] Status ${response.status}:`, errText);
+        }
+    } catch (err) {
+        console.error("[SMS Gateway Exception]:", err.message);
+    }
+}
 
 // Helper: Calculate Due Date
 function calculateDueDate(startDateStr, termType) {
@@ -40,7 +71,7 @@ function calculateLateFee(principal, daysLate) {
     return daysLate * ratePerDay;
 }
 
-// OTP Store (In-Memory for demonstration)
+// In-Memory OTP Store
 let activeOtp = null;
 
 // API Routes
@@ -120,7 +151,7 @@ app.get('/api/dashboard', async (req, res) => {
     }
 });
 
-// 2. Request OTP for Kitty / Critical Actions
+// 2. Request OTP Code for Adding Borrower or Important Actions
 app.post('/api/auth/request-otp', async (req, res) => {
     const { channel } = req.body; // 'email' or 'phone'
     const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -131,15 +162,11 @@ app.post('/api/auth/request-otp', async (req, res) => {
             await transporter.sendMail({
                 from: process.env.GMAIL_USER,
                 to: process.env.ADMIN_EMAIL,
-                subject: 'DebtTrack Security Code',
-                text: `Your OTP to confirm action on DebtTrack is: ${generatedCode}`
+                subject: 'DebtTrack Security Verification Code',
+                text: `Your OTP code to authorize action in DebtTrack is: ${generatedCode}`
             });
         } else {
-            await twilioClient.messages.create({
-                body: `DebtTrack Security OTP: ${generatedCode}`,
-                from: process.env.TWILIO_PHONE_NUMBER,
-                to: process.env.ADMIN_PHONE
-            });
+            await sendSmsViaPersonalPhone(process.env.ADMIN_PHONE, `DebtTrack OTP Verification Code: ${generatedCode}`);
         }
         res.json({ success: true, message: `OTP sent via ${channel}` });
     } catch (error) {
@@ -154,7 +181,7 @@ app.post('/api/borrowers', async (req, res) => {
     if (otp !== activeOtp) {
         return res.status(400).json({ error: 'Invalid or expired OTP code.' });
     }
-    activeOtp = null; // Clear after use
+    activeOtp = null; // Reset after verification
 
     try {
         // Insert Borrower
@@ -190,7 +217,7 @@ app.post('/api/borrowers', async (req, res) => {
     }
 });
 
-// 4. Update Existing Loan and Borrower Details
+// 4. Update Existing Loan and Borrower
 app.put('/api/loans/:id', async (req, res) => {
     const { id } = req.params;
     const { borrowerName, phone, email, amount, interest, termType, borrowDate, status, interestCollected } = req.body;
@@ -241,9 +268,9 @@ app.delete('/api/loans/:id', async (req, res) => {
     }
 });
 
-// Automated Daily Cron Job (Reminders & Fee Notifications at 8:00 AM daily)
+// Automated Daily Cron Job (Reminders sent every day at 8:00 AM)
 cron.schedule('0 8 * * *', async () => {
-    console.log('Running automated due date check...');
+    console.log('[Cron Job] Executing automated daily payment due checks...');
     const today = new Date().toISOString().split('T')[0];
 
     const { data: loans } = await supabase
@@ -255,31 +282,29 @@ cron.schedule('0 8 * * *', async () => {
 
     for (const loan of loans) {
         if (loan.due_date === today) {
-            const message = `Hello ${loan.borrowers.name}, this is a friendly reminder that your loan repayment of ₱${loan.principal_amount} is due today. Thank you!`;
+            const message = `Hello ${loan.borrowers.name}, friendly reminder that your loan payment of ₱${loan.principal_amount} is due today (${today}). Thank you!`;
             
-            // Send SMS via Twilio
-            try {
-                await twilioClient.messages.create({
-                    body: message,
-                    from: process.env.TWILIO_PHONE_NUMBER,
-                    to: loan.borrowers.phone
-                });
-            } catch (e) { console.error('Twilio SMS Error:', e); }
+            // Send SMS via Gateway App
+            if (loan.borrowers.phone) {
+                await sendSmsViaPersonalPhone(loan.borrowers.phone, message);
+            }
 
-            // Send Email via Gmail if present
+            // Send Email via Gmail
             if (loan.borrowers.email) {
                 try {
                     await transporter.sendMail({
                         from: process.env.GMAIL_USER,
                         to: loan.borrowers.email,
-                        subject: 'Loan Payment Due Today - DebtTrack',
+                        subject: 'Payment Due Today Notice - DebtTrack',
                         text: message
                     });
-                } catch (e) { console.error('Gmail Error:', e); }
+                } catch (e) {
+                    console.error('[Gmail Error]:', e.message);
+                }
             }
         }
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`DebtTrack Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`DebtTrack Server running on http://localhost:${PORT}`));
