@@ -1,7 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
+const twilio = require('twilio');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,38 +12,94 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'YOUR_SUPABASE_URL';
-const SUPABASE_KEY = process.env.SUPABASE_KEY || 'YOUR_SUPABASE_SERVICE_ROLE_KEY';
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// Supabase Setup
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
-const SMS_API_URL = process.env.SMS_API_URL || 'https://api.sms-gateway.example/v1/send';
-const SMS_API_TOKEN = process.env.SMS_API_TOKEN || 'YOUR_SMS_API_TOKEN';
+let supabase;
+if (SUPABASE_URL && SUPABASE_URL.startsWith('http')) {
+    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+} else {
+    console.error('⚠️ Warning: SUPABASE_URL is missing or invalid in .env');
+}
+
+// Twilio Setup
+const twilioClient = (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) 
+    ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+    : null;
+
+// In-Memory OTP Storage
+const activeOTPs = new Map();
 
 /**
- * Formats local phone numbers to E.164 international standard
- * (e.g., "09686864240" -> "+639686864240")
+ * Calculates due date based on term
  */
-function formatToE164(phone, defaultCountryCode = '+63') {
-    if (!phone) return null;
-    let cleaned = phone.replace(/[^\d+]/g, '');
-    if (cleaned.startsWith('0')) {
-        cleaned = defaultCountryCode + cleaned.slice(1);
-    } else if (!cleaned.startsWith('+')) {
-        cleaned = defaultCountryCode + cleaned;
+function calculateDueDate(issueDateStr, term) {
+    const issueDate = new Date(issueDateStr);
+    const dueDate = new Date(issueDate);
+
+    if (term === '1week') dueDate.setDate(dueDate.getDate() + 7);
+    else if (term === '2weeks') dueDate.setDate(dueDate.getDate() + 14);
+    else if (term === '1month') dueDate.setMonth(dueDate.getMonth() + 1);
+
+    return dueDate.toISOString().split('T')[0];
+}
+
+/**
+ * Calculates dynamic status & ₱30/1k/day overdue penalty
+ */
+function processLoanData(loan) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dueDate = new Date(loan.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+
+    const diffTime = today.getTime() - dueDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
+
+    let status = 'Active';
+    let overdueDays = 0;
+    let overdueFee = 0;
+
+    if (diffDays === 0) {
+        status = 'Due Today';
+    } else if (diffDays > 0) {
+        status = 'Overdue';
+        overdueDays = diffDays;
+        const principal = parseFloat(loan.principal_amount || 0);
+        // Penalty: ₱30 per ₱1,000 principal per day
+        overdueFee = Math.floor(principal / 1000) * 30 * overdueDays;
     }
-    return cleaned;
+
+    const principal = parseFloat(loan.principal_amount || 0);
+    const interest = principal * (parseFloat(loan.interest_rate || 10) / 100);
+    const totalPayable = principal + interest + overdueFee;
+
+    return {
+        ...loan,
+        status,
+        overdueDays,
+        overdueFee,
+        calculatedInterest: interest,
+        totalPayable
+    };
 }
 
 // GET /api/dashboard
 app.get('/api/dashboard', async (req, res) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase is not configured in .env' });
+
     try {
         const { data: loans, error } = await supabase
             .from('loans')
             .select(`
                 id,
                 principal_amount,
+                interest_rate,
+                term,
+                issue_date,
                 due_date,
-                status,
                 borrowers (
                     id,
                     name,
@@ -52,8 +110,11 @@ app.get('/api/dashboard', async (req, res) => {
 
         if (error) throw error;
 
+        const processedLoans = (loans || []).map(processLoanData);
+
         const stats = {
             totalCapitalLent: 0,
+            totalInterest: 0,
             totalBorrowers: 0,
             activeCount: 0,
             dueTodayCount: 0,
@@ -62,8 +123,9 @@ app.get('/api/dashboard', async (req, res) => {
 
         const borrowerSet = new Set();
 
-        loans.forEach(loan => {
+        processedLoans.forEach(loan => {
             stats.totalCapitalLent += parseFloat(loan.principal_amount || 0);
+            stats.totalInterest += loan.calculatedInterest;
             if (loan.borrowers?.id) borrowerSet.add(loan.borrowers.id);
 
             if (loan.status === 'Active') stats.activeCount++;
@@ -72,19 +134,53 @@ app.get('/api/dashboard', async (req, res) => {
         });
 
         stats.totalBorrowers = borrowerSet.size;
-        res.json({ stats, loans });
+
+        res.json({ stats, loans: processedLoans });
     } catch (err) {
-        console.error('Dashboard Error:', err.message);
-        res.status(500).json({ error: 'Failed to retrieve dashboard data' });
+        res.status(500).json({ error: err.message });
     }
 });
 
-// POST /api/loans (Create New Loan & Borrower)
+// POST /api/otp/request
+app.post('/api/otp/request', async (req, res) => {
+    const { channel } = req.body; // 'email' or 'phone'
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const target = channel === 'email' ? process.env.ADMIN_CONSTANT_EMAIL : process.env.ADMIN_CONSTANT_PHONE;
+
+    activeOTPs.set('ADMIN_ACTION', { code, expires: Date.now() + 5 * 60 * 1000 });
+
+    console.log(`\n🔑 [OTP DISPATCH] Channel: ${channel.toUpperCase()} | Target: ${target} \vert{} Code:${code}\n`);
+
+    if (channel === 'phone' && twilioClient && process.env.TWILIO_PHONE_NUMBER) {
+        try {
+            await twilioClient.messages.create({
+                body: `[DebtTrack Security] Your verification OTP code is: ${code}`,
+                from: process.env.TWILIO_PHONE_NUMBER,
+                to: target
+            });
+        } catch (e) {
+            console.error('[Twilio OTP Error]:', e.message);
+        }
+    }
+
+    res.json({ success: true, message: `OTP sent to constant ${channel} (${target})` });
+});
+
+// POST /api/loans (Create Loan with OTP)
 app.post('/api/loans', async (req, res) => {
-    const { name, phone, email, principal_amount, due_date } = req.body;
+    if (!supabase) return res.status(500).json({ error: 'Supabase is not configured' });
+    const { name, phone, email, principal_amount, interest_rate, term, issue_date, otpCode } = req.body;
+
+    // OTP Verification
+    const storedOTP = activeOTPs.get('ADMIN_ACTION');
+    if (!storedOTP || storedOTP.code !== otpCode || Date.now() > storedOTP.expires) {
+        return res.status(401).json({ error: 'Invalid or expired OTP code.' });
+    }
+    activeOTPs.delete('ADMIN_ACTION');
 
     try {
-        // Insert Borrower
+        const computedDueDate = calculateDueDate(issue_date, term);
+
         const { data: borrower, error: bErr } = await supabase
             .from('borrowers')
             .insert([{ name, phone, email }])
@@ -93,14 +189,15 @@ app.post('/api/loans', async (req, res) => {
 
         if (bErr) throw bErr;
 
-        // Insert Loan
         const { data: loan, error: lErr } = await supabase
             .from('loans')
             .insert([{
                 borrower_id: borrower.id,
                 principal_amount: parseFloat(principal_amount),
-                due_date,
-                status: 'Active'
+                interest_rate: parseFloat(interest_rate || 10),
+                term,
+                issue_date,
+                due_date: computedDueDate
             }])
             .select();
 
@@ -108,53 +205,52 @@ app.post('/api/loans', async (req, res) => {
 
         res.json({ success: true, message: 'New loan created successfully!', loan });
     } catch (err) {
-        console.error('Create Loan Error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
 
-// PUT /api/loans/:id (Update Borrower & Loan Details)
+// PUT /api/loans/:id (Edit Existing Client Loan)
 app.put('/api/loans/:id', async (req, res) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase is not configured' });
     const loanId = req.params.id;
-    const { borrower_id, name, phone, principal_amount, due_date } = req.body;
+    const { borrower_id, name, phone, email, principal_amount, interest_rate, term, issue_date } = req.body;
 
     try {
-        // Update Borrower Details
+        const computedDueDate = calculateDueDate(issue_date, term);
+
         if (borrower_id) {
             const { error: bErr } = await supabase
                 .from('borrowers')
-                .update({ name, phone })
+                .update({ name, phone, email })
                 .eq('id', borrower_id);
             if (bErr) throw bErr;
         }
 
-        // Update Loan Details
         const { data: loan, error: lErr } = await supabase
             .from('loans')
             .update({
                 principal_amount: parseFloat(principal_amount),
-                due_date
+                interest_rate: parseFloat(interest_rate),
+                term,
+                issue_date,
+                due_date: computedDueDate
             })
             .eq('id', loanId)
             .select();
 
         if (lErr) throw lErr;
 
-        res.json({ success: true, message: 'Record updated successfully!', loan });
+        res.json({ success: true, message: 'Loan updated successfully!', loan });
     } catch (err) {
-        console.error('Update Error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
 
 // DELETE /api/loans/:id
 app.delete('/api/loans/:id', async (req, res) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase is not configured' });
     try {
-        const { error } = await supabase
-            .from('loans')
-            .delete()
-            .eq('id', req.params.id);
-
+        const { error } = await supabase.from('loans').delete().eq('id', req.params.id);
         if (error) throw error;
         res.json({ success: true, message: 'Loan record deleted.' });
     } catch (err) {
@@ -162,13 +258,13 @@ app.delete('/api/loans/:id', async (req, res) => {
     }
 });
 
-// POST /api/loans/:id/send-reminder
+// POST /api/loans/:id/send-reminder (Twilio SMS Integration)
 app.post('/api/loans/:id/send-reminder', async (req, res) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase is not configured' });
     const loanId = req.params.id;
-    const { channel = 'both' } = req.body;
 
     try {
-        const { data: loan, error } = await supabase
+        const { data: rawLoan, error } = await supabase
             .from('loans')
             .select(`
                 id,
@@ -176,64 +272,41 @@ app.post('/api/loans/:id/send-reminder', async (req, res) => {
                 due_date,
                 borrowers (
                     name,
-                    phone,
-                    email
+                    phone
                 )
             `)
             .eq('id', loanId)
             .single();
 
-        if (error || !loan) {
-            return res.status(404).json({ error: 'Loan record not found' });
-        }
+        if (error || !rawLoan) return res.status(404).json({ error: 'Loan record not found' });
 
+        const loan = processLoanData(rawLoan);
         const borrower = loan.borrowers;
-        const formattedPhone = formatToE164(borrower.phone);
-        const reminderMessage = `Hello ${borrower.name}, this is a friendly reminder regarding your loan of ₱${parseFloat(loan.principal_amount).toLocaleString()} due on ${loan.due_date}.`;
+        const msg = `Hello ${borrower.name}, friendly reminder from DebtTrack: Your loan of ₱${loan.totalPayable.toLocaleString()} is${loan.status === 'Overdue' ? 'OVERDUE' : 'due on ' + loan.due_date}. Please settle promptly.`;
 
         let smsSent = false;
-        let emailSent = false;
-
-        if ((channel === 'sms' || channel === 'both') && formattedPhone) {
-            const smsResponse = await fetch(SMS_API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${SMS_API_TOKEN}`
-                },
-                body: JSON.stringify({
-                    recipient: formattedPhone,
-                    message: reminderMessage
-                })
-            });
-
-            if (!smsResponse.ok) {
-                const errorText = await smsResponse.text();
-                console.error(`[SMS Error] Status ${smsResponse.status}:`, errorText);
-                if (channel === 'sms') {
-                    return res.status(400).json({ error: `SMS Delivery Failed: ${errorText}` });
-                }
-            } else {
+        if (twilioClient && process.env.TWILIO_PHONE_NUMBER && borrower.phone) {
+            try {
+                await twilioClient.messages.create({
+                    body: msg,
+                    from: process.env.TWILIO_PHONE_NUMBER,
+                    to: borrower.phone
+                });
                 smsSent = true;
+            } catch (tErr) {
+                console.error('[Twilio Error]:', tErr.message);
             }
+        } else {
+            console.log(`\n📱 [MOCK SMS REMINDER SENT TO ${borrower.phone}]:${msg}\n`);
+            smsSent = true;
         }
 
-        if ((channel === 'email' || channel === 'both') && borrower.email) {
-            console.log(`[Email Dispatched] To: ${borrower.email}`);
-            emailSent = true;
-        }
-
-        res.json({
-            success: true,
-            message: `Reminder processed for ${borrower.name}.`,
-            details: { phoneUsed: formattedPhone, smsSent, emailSent }
-        });
+        res.json({ success: true, message: `Reminder dispatched to ${borrower.name}!`, smsSent });
     } catch (err) {
-        console.error('Reminder Error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`🚀 DebtTrack running on http://localhost:${PORT}`);
 });
