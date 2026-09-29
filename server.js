@@ -11,9 +11,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Initialize Services
+// Initialize Supabase using Service Role Key (Bypasses Row Level Security)
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
+// Gmail Transporter
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -23,7 +24,7 @@ const transporter = nodemailer.createTransport({
 });
 
 /**
- * Sends SMS using the Cloud SMS Gateway API App
+ * Sends SMS via Cloud SMS Gateway API App
  */
 async function sendSmsViaPersonalPhone(toPhone, messageText) {
     if (!process.env.SMS_GATEWAY_URL || !process.env.SMS_GATEWAY_KEY) {
@@ -39,13 +40,13 @@ async function sendSmsViaPersonalPhone(toPhone, messageText) {
                 'X-API-Key': process.env.SMS_GATEWAY_KEY
             },
             body: JSON.stringify({
-                to: toPhone,
+                phoneNumber: toPhone,
                 message: messageText
             })
         });
 
         if (response.ok) {
-            console.log(`[SMS Gateway] SMS successfully queued to ${toPhone}`);
+            console.log(`[SMS Gateway] SMS queued to ${toPhone}`);
         } else {
             const errText = await response.text();
             console.error(`[SMS Gateway Error] Status ${response.status}:`, errText);
@@ -74,9 +75,9 @@ function calculateLateFee(principal, daysLate) {
 // In-Memory OTP Store
 let activeOtp = null;
 
-// API Routes
+// --- API ROUTES ---
 
-// 1. Get Summary Stats and Borrowers
+// 1. Get Summary Stats and Loans
 app.get('/api/dashboard', async (req, res) => {
     try {
         const { data: loans, error: loansErr } = await supabase
@@ -99,7 +100,6 @@ app.get('/api/dashboard', async (req, res) => {
             totalCapital += principal;
             totalInterest += parseFloat(loan.interest_collected || 0);
 
-            // Date Evaluation
             const dueDate = loan.due_date;
             let computedStatus = loan.status;
 
@@ -116,7 +116,6 @@ app.get('/api/dashboard', async (req, res) => {
                 }
             }
 
-            // Calculate late fee if overdue
             let lateFee = 0;
             let daysOverdue = 0;
             if (today > dueDate && loan.status !== 'Paid') {
@@ -151,9 +150,9 @@ app.get('/api/dashboard', async (req, res) => {
     }
 });
 
-// 2. Request OTP Code for Adding Borrower or Important Actions
+// 2. Request OTP Code
 app.post('/api/auth/request-otp', async (req, res) => {
-    const { channel } = req.body; // 'email' or 'phone'
+    const { channel } = req.body;
     const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
     activeOtp = generatedCode;
 
@@ -163,10 +162,13 @@ app.post('/api/auth/request-otp', async (req, res) => {
                 from: process.env.GMAIL_USER,
                 to: process.env.ADMIN_EMAIL,
                 subject: 'DebtTrack Security Verification Code',
-                text: `Your OTP code to authorize action in DebtTrack is: ${generatedCode}`
+                text: `Your OTP code is: ${generatedCode}`
             });
         } else {
-            await sendSmsViaPersonalPhone(process.env.ADMIN_PHONE, `DebtTrack OTP Verification Code: ${generatedCode}`);
+            await sendSmsViaPersonalPhone(
+                process.env.ADMIN_PHONE, 
+                `DebtTrack OTP Verification Code: ${generatedCode}`
+            );
         }
         res.json({ success: true, message: `OTP sent via ${channel}` });
     } catch (error) {
@@ -174,17 +176,16 @@ app.post('/api/auth/request-otp', async (req, res) => {
     }
 });
 
-// 3. Verify OTP and Create Borrower / Loan
+// 3. Verify OTP & Create Borrower/Loan
 app.post('/api/borrowers', async (req, res) => {
     const { otp, borrower, loan } = req.body;
 
     if (otp !== activeOtp) {
         return res.status(400).json({ error: 'Invalid or expired OTP code.' });
     }
-    activeOtp = null; // Reset after verification
+    activeOtp = null;
 
     try {
-        // Insert Borrower
         const { data: bData, error: bErr } = await supabase
             .from('borrowers')
             .insert([{ name: borrower.name, phone: borrower.phone, email: borrower.email }])
@@ -195,7 +196,6 @@ app.post('/api/borrowers', async (req, res) => {
         const borrowerId = bData[0].id;
         const dueDate = calculateDueDate(loan.borrowDate, loan.termType);
 
-        // Insert Loan
         const { data: lData, error: lErr } = await supabase
             .from('loans')
             .insert([{
@@ -217,7 +217,7 @@ app.post('/api/borrowers', async (req, res) => {
     }
 });
 
-// 4. Update Existing Loan and Borrower
+// 4. Update Existing Loan & Borrower
 app.put('/api/loans/:id', async (req, res) => {
     const { id } = req.params;
     const { borrowerName, phone, email, amount, interest, termType, borrowDate, status, interestCollected } = req.body;
@@ -225,7 +225,6 @@ app.put('/api/loans/:id', async (req, res) => {
     try {
         const dueDate = calculateDueDate(borrowDate, termType);
 
-        // Update Loan
         const { data: loanData, error: lErr } = await supabase
             .from('loans')
             .update({
@@ -242,7 +241,6 @@ app.put('/api/loans/:id', async (req, res) => {
 
         if (lErr) throw lErr;
 
-        // Update Borrower
         if (loanData[0]?.borrower_id) {
             await supabase
                 .from('borrowers')
@@ -256,7 +254,7 @@ app.put('/api/loans/:id', async (req, res) => {
     }
 });
 
-// 5. Delete Borrower & Loan Record
+// 5. Delete Loan Record
 app.delete('/api/loans/:id', async (req, res) => {
     const { id } = req.params;
     try {
@@ -268,42 +266,106 @@ app.delete('/api/loans/:id', async (req, res) => {
     }
 });
 
-// Automated Daily Cron Job (Reminders sent every day at 8:00 AM)
+// 6. Manual Send Reminder Endpoint
+app.post('/api/loans/:id/send-reminder', async (req, res) => {
+    const { id } = req.params;
+    const { channel } = req.body;
+
+    try {
+        const { data: loan, error } = await supabase
+            .from('loans')
+            .select(`*, borrowers(*)`)
+            .eq('id', id)
+            .single();
+
+        if (error || !loan) {
+            return res.status(404).json({ error: 'Loan or borrower record not found.' });
+        }
+
+        const borrower = loan.borrowers;
+        const message = `Hello ${borrower.name}, this is a reminder regarding your loan of ₱${loan.principal_amount} (Due: ${loan.due_date}). Please contact us for payment updates. Thank you!`;
+
+        let smsSent = false;
+        let emailSent = false;
+
+        if ((channel === 'sms' || channel === 'both') && borrower.phone) {
+            await sendSmsViaPersonalPhone(borrower.phone, message);
+            smsSent = true;
+        }
+
+        if ((channel === 'email' || channel === 'both') && borrower.email) {
+            await transporter.sendMail({
+                from: process.env.GMAIL_USER,
+                to: borrower.email,
+                subject: 'Payment Reminder - DebtTrack',
+                text: message
+            });
+            emailSent = true;
+        }
+
+        res.json({
+            success: true,
+            message: `Reminder dispatched! (SMS: ${smsSent ? 'Queued' : 'Skipped'}, Email: ${emailSent ? 'Sent' : 'Skipped'})`
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Automated Daily Cron Job (Executes strictly at 8:00 AM GMT+8)
 cron.schedule('0 8 * * *', async () => {
-    console.log('[Cron Job] Executing automated daily payment due checks...');
+    console.log('[Cron Job] Executing 8:00 AM GMT+8 payment due check...');
     const today = new Date().toISOString().split('T')[0];
 
-    const { data: loans } = await supabase
+    const { data: loans, error } = await supabase
         .from('loans')
         .select(`*, borrowers(*)`)
-        .eq('status', 'Active');
+        .neq('status', 'Paid');
 
-    if (!loans) return;
+    if (error || !loans) return;
 
-    for (const loan of loans) {
-        if (loan.due_date === today) {
-            const message = `Hello ${loan.borrowers.name}, friendly reminder that your loan payment of ₱${loan.principal_amount} is due today (${today}). Thank you!`;
-            
-            // Send SMS via Gateway App
-            if (loan.borrowers.phone) {
-                await sendSmsViaPersonalPhone(loan.borrowers.phone, message);
+    const dueTodayLoans = loans.filter(l => l.due_date === today);
+
+    // If there are loans due today, notify borrowers and admin
+    if (dueTodayLoans.length > 0) {
+        let adminSummaryLines = [`[DebtTrack Admin Notice] ${dueTodayLoans.length} loan(s) due today (${today}):\n`];
+
+        for (const loan of dueTodayLoans) {
+            const borrower = loan.borrowers;
+            const borrowerMessage = `Hello ${borrower.name}, friendly reminder that your loan payment of ₱${loan.principal_amount} is due today (${today}). Thank you!`;
+
+            // Notify Borrower via SMS
+            if (borrower.phone) {
+                await sendSmsViaPersonalPhone(borrower.phone, borrowerMessage);
             }
 
-            // Send Email via Gmail
-            if (loan.borrowers.email) {
+            // Notify Borrower via Email
+            if (borrower.email) {
                 try {
                     await transporter.sendMail({
                         from: process.env.GMAIL_USER,
-                        to: loan.borrowers.email,
-                        subject: 'Payment Due Today Notice - DebtTrack',
-                        text: message
+                        to: borrower.email,
+                        subject: 'Payment Due Today - DebtTrack',
+                        text: borrowerMessage
                     });
                 } catch (e) {
-                    console.error('[Gmail Error]:', e.message);
+                    console.error('[Gmail Cron Error]:', e.message);
                 }
             }
+
+            adminSummaryLines.push(`• ${borrower.name}: ₱${loan.principal_amount} (${borrower.phone || 'No Phone'})`);
         }
+
+        // Notify Admin constant phone number
+        if (process.env.ADMIN_PHONE) {
+            await sendSmsViaPersonalPhone(process.env.ADMIN_PHONE, adminSummaryLines.join('\n'));
+            console.log('[Cron Job] Summary notification dispatched to Admin.');
+        }
+    } else {
+        console.log('[Cron Job] No loans due today. Admin notification skipped.');
     }
+}, {
+    timezone: "Asia/Manila"
 });
 
 const PORT = process.env.PORT || 3000;

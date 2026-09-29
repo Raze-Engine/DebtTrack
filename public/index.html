@@ -3,186 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DebtTrack - Cute Loan Manager</title>
-    <link rel="manifest" href="/manifest.json">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="styles.css">
+    <title>DebtTrack PWA</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; background-color: #f4f6f9; color: #333; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #ddd; }
+        th { background: #f8fafc; }
+        button { cursor: pointer; padding: 8px 14px; border-radius: 4px; border: none; background: #2563eb; color: white; }
+        button:hover { background: #1d4ed8; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 400px; max-width: 90%; }
+        .reminder-box { margin-top: 15px; padding: 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; }
+    </style>
 </head>
-<body class="p-4 sm:p-6 lg:p-8">
+<body>
 
-    <div class="max-w-5xl mx-auto space-y-6">
-        
-        <!-- Header & Theme / Privacy Controls -->
-        <div class="flex justify-between items-center glass-3d-card p-4 relative overflow-hidden">
-            <div class="flex items-center space-x-3">
-                <div class="w-11 h-11 rounded-2xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-2xl shadow-sm border border-amber-200/50">
-                    🐱
-                </div>
-                <div>
-                    <h1 class="text-2xl font-black tracking-tight">DebtTrack</h1>
-                    <p class="text-xs text-stone-500 font-medium">Smart Loan Ledger</p>
-                </div>
-            </div>
-            <div class="flex items-center space-x-3">
-                <button id="privacyToggle" class="p-2.5 rounded-2xl bg-amber-100/60 dark:bg-slate-800 hover:opacity-80 transition flex items-center gap-1" title="Toggle Privacy Mask">
-                    🔒 <span id="privacyStatus" class="text-xs font-bold">Privacy Off</span>
-                </button>
-                <button id="themeToggle" class="p-2.5 rounded-2xl bg-amber-100/60 dark:bg-slate-800 hover:opacity-80 transition text-lg">
-                    🌙
-                </button>
-            </div>
-        </div>
+    <h1>DebtTrack Dashboard</h1>
 
-        <!-- Summary Dashboard Floating Panel -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="glass-3d-card p-4 flex flex-col justify-between">
-                <div class="flex items-center gap-1.5 mb-1">
-                    <span class="text-base">💰</span>
-                    <p class="text-xs text-stone-500 uppercase font-bold tracking-wider">Total Capital</p>
-                </div>
-                <p id="totalCapital" class="text-xl font-black">₱0.00</p>
-            </div>
-            <div class="glass-3d-card p-4 flex flex-col justify-between">
-                <div class="flex items-center gap-1.5 mb-1">
-                    <span class="text-base">📈</span>
-                    <p class="text-xs text-stone-500 uppercase font-bold tracking-wider">Interest</p>
-                </div>
-                <p id="totalInterest" class="text-xl font-black text-emerald-600 dark:text-emerald-400">₱0.00</p>
-            </div>
-            <div class="glass-3d-card p-4 flex flex-col justify-between">
-                <div class="flex items-center gap-1.5 mb-1">
-                    <span class="text-base">🐾</span>
-                    <p class="text-xs text-stone-500 uppercase font-bold tracking-wider">Borrowers</p>
-                </div>
-                <div class="text-lg font-black">
-                    Total: <span id="statTotal">0</span>
-                </div>
-            </div>
-            <div class="glass-3d-card p-4 flex flex-col justify-between">
-                <p class="text-xs text-stone-500 uppercase font-bold tracking-wider mb-2">Status Breakdown</p>
-                <div class="flex text-xs font-black gap-1.5 flex-wrap">
-                    <span class="badge-active px-2 py-1 rounded-xl">Act: <span id="statActive">0</span></span>
-                    <span class="badge-due px-2 py-1 rounded-xl">Due: <span id="statDue">0</span></span>
-                    <span class="badge-overdue px-2 py-1 rounded-xl">Over: <span id="statOverdue">0</span></span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Search and Sort Toolbar -->
-        <div class="glass-3d-card p-4 flex flex-col md:flex-row gap-4 justify-between items-center">
-            <div class="relative w-full md:w-1/2">
-                <span class="absolute left-3.5 top-3 text-stone-400">🔍</span>
-                <input type="text" id="searchInput" placeholder="Search borrower name..." class="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-amber-50/50 dark:bg-slate-800 border border-amber-200/40 dark:border-slate-700 outline-none font-semibold text-sm">
-            </div>
-            
-            <div class="flex items-center gap-2 w-full md:w-auto">
-                <label class="text-xs font-bold text-stone-500 whitespace-nowrap">Sort By:</label>
-                <select id="sortSelect" class="w-full md:w-auto p-2.5 rounded-2xl bg-amber-50/50 dark:bg-slate-800 border border-amber-200/40 dark:border-slate-700 outline-none font-bold text-xs">
-                    <option value="dueDate">Nearest Due Date</option>
-                    <option value="a-z">Name: A to Z</option>
-                    <option value="z-a">Name: Z to A</option>
-                    <option value="highest">Amount: High to Low</option>
-                    <option value="lowest">Amount: Low to High</option>
-                    <option value="term-2-1">Tenurity: 2wks to 1wk</option>
-                    <option value="term-1-2">Tenurity: 1wk to 2wks</option>
-                    <option value="tag-active">Tag: Active → Due → Overdue</option>
-                    <option value="tag-overdue">Tag: Overdue → Due → Active</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Borrower Cards Container -->
-        <div id="borrowersContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Dynamic Cards Inserted Here -->
-        </div>
+    <!-- Summary Stats -->
+    <div class="card" id="stats">
+        <h3>Summary Statistics</h3>
+        <p>Loading metrics...</p>
     </div>
 
-    <!-- Floating Action Button -->
-    <button id="openAddModal" class="fab-btn fixed bottom-6 right-6 w-14 h-14 text-white rounded-full flex items-center justify-center text-3xl font-black z-40">
-        +
-    </button>
+    <!-- Loan List Table -->
+    <div class="card">
+        <h3>Borrowers & Active Loans</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Borrower</th>
+                    <th>Phone</th>
+                    <th>Amount</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="loanTableBody">
+                <tr><td colspan="6">Loading records...</td></tr>
+            </tbody>
+        </table>
+    </div>
 
-    <!-- Modal for Adding / Editing Borrower -->
-    <div id="borrowerModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="glass-3d-card w-full max-w-lg p-6 bg-white dark:bg-slate-900 rounded-3xl relative">
-            <div class="flex items-center gap-2 mb-4">
-                <span class="text-2xl">📝</span>
-                <h2 id="modalTitle" class="text-xl font-black">Add Borrower</h2>
-            </div>
+    <!-- Borrower Window / Edit Modal -->
+    <div id="borrowerModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Borrower Details</h3>
             
-            <form id="loanForm" class="space-y-4">
-                <input type="hidden" id="loanId">
-                
-                <div>
-                    <label class="block text-xs font-bold mb-1 text-stone-500">Borrower Name *</label>
-                    <input type="text" id="formName" required class="w-full p-2.5 rounded-2xl bg-stone-100 dark:bg-slate-800 outline-none font-semibold text-sm">
-                </div>
+            <p><strong>Name:</strong> <span id="modalName"></span></p>
+            <p><strong>Phone:</strong> <span id="modalPhone"></span></p>
+            <p><strong>Email:</strong> <span id="modalEmail"></span></p>
+            <p><strong>Principal Amount:</strong> ₱<span id="modalAmount"></span></p>
+            <p><strong>Due Date:</strong> <span id="modalDueDate"></span></p>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold mb-1 text-stone-500">Phone Number *</label>
-                        <input type="text" id="formPhone" required class="w-full p-2.5 rounded-2xl bg-stone-100 dark:bg-slate-800 outline-none font-semibold text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold mb-1 text-stone-500">Email (Optional)</label>
-                        <input type="email" id="formEmail" class="w-full p-2.5 rounded-2xl bg-stone-100 dark:bg-slate-800 outline-none font-semibold text-sm">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold mb-1 text-stone-500">Amount (PHP) *</label>
-                        <input type="number" id="formAmount" required class="w-full p-2.5 rounded-2xl bg-stone-100 dark:bg-slate-800 outline-none font-semibold text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold mb-1 text-stone-500">Interest Rate (%) *</label>
-                        <input type="number" id="formInterest" step="0.1" required class="w-full p-2.5 rounded-2xl bg-stone-100 dark:bg-slate-800 outline-none font-semibold text-sm">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold mb-1 text-stone-500">Repayment Term *</label>
-                    <select id="formTerm" class="w-full p-2.5 rounded-2xl bg-stone-100 dark:bg-slate-800 outline-none font-bold text-xs">
-                        <option value="1week">1 Week (Fixed Flat Rate)</option>
-                        <option value="2weeks">2 Weeks (Fixed Flat Rate)</option>
-                        <option value="1month">1 Month (Fixed Flat Rate)</option>
+            <!-- Manual Send Reminder Option -->
+            <div class="reminder-box">
+                <label style="font-weight: bold; display: block; margin-bottom: 6px;">Send Manual Reminder</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <select id="reminderChannel" style="padding: 6px; border-radius: 4px; flex-grow: 1;">
+                        <option value="both">Both (SMS & Email)</option>
+                        <option value="sms">SMS Only</option>
+                        <option value="email">Email Only</option>
                     </select>
+                    <button type="button" onclick="triggerManualReminder()">Send</button>
                 </div>
+            </div>
 
-                <div>
-                    <div class="flex justify-between items-center mb-1">
-                        <label class="text-xs font-bold text-stone-500">Borrow Date</label>
-                        <div class="flex items-center gap-2 text-xs font-bold">
-                            <span>Set Custom Date</span>
-                            <input type="checkbox" id="customDateSwitch" class="rounded">
-                        </div>
-                    </div>
-                    <input type="date" id="formBorrowDate" class="w-full p-2.5 rounded-2xl bg-stone-100 dark:bg-slate-800 outline-none font-semibold text-sm">
-                </div>
-
-                <!-- OTP Verification Option for New Entry -->
-                <div id="otpSection" class="border-t border-stone-200 dark:border-slate-800 pt-3 mt-2">
-                    <label class="block text-xs font-bold mb-1 text-stone-500">Security Authorization (OTP required)</label>
-                    <div class="flex gap-2 mb-2">
-                        <button type="button" id="btnSendOtpEmail" class="text-xs bg-amber-100 dark:bg-slate-800 px-3 py-2 rounded-xl font-bold">Send to Constant Email</button>
-                        <button type="button" id="btnSendOtpPhone" class="text-xs bg-amber-100 dark:bg-slate-800 px-3 py-2 rounded-xl font-bold">Send to Constant SMS</button>
-                    </div>
-                    <input type="text" id="formOtp" placeholder="Enter OTP Code" class="w-full p-2.5 rounded-2xl bg-stone-100 dark:bg-slate-800 outline-none text-center tracking-widest font-black text-sm">
-                </div>
-
-                <div class="flex justify-end gap-3 pt-3">
-                    <button type="button" id="closeModalBtn" class="px-4 py-2 rounded-2xl bg-stone-200 dark:bg-slate-800 font-bold text-xs">Cancel</button>
-                    <button type="submit" class="px-5 py-2 rounded-2xl bg-amber-500 text-white font-bold text-xs">Save Loan</button>
-                </div>
-            </form>
+            <br>
+            <button onclick="closeModal()" style="background: #64748b; width: 100%;">Close</button>
         </div>
     </div>
 
-    <script src="app.js"></script>
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js');
+        let selectedLoanId = null;
+
+        async function loadDashboard() {
+            try {
+                const res = await fetch('/api/dashboard');
+                const data = await res.json();
+
+                // Render Summary Stats
+                document.getElementById('stats').innerHTML = `
+                    <p><strong>Total Borrowers:</strong> ${data.stats.totalBorrowers}</p>
+                    <p><strong>Total Capital Lent:</strong> ₱${data.stats.totalCapitalLent}</p>
+                    <p><strong>Active Loans:</strong> ${data.stats.activeCount} | <strong>Due Today:</strong> ${data.stats.dueTodayCount} | <strong>Overdue:</strong> ${data.stats.overdueCount}</p>
+                `;
+
+                // Render Loans Table
+                const tbody = document.getElementById('loanTableBody');
+                tbody.innerHTML = data.loans.map(loan => `
+                    <tr>
+                        <td>${loan.borrowers.name}</td>
+                        <td>${loan.borrowers.phone || 'N/A'}</td>
+                        <td>₱${loan.principal_amount}</td>
+                        <td>${loan.due_date}</td>
+                        <td><strong>${loan.status}</strong></td>
+                        <td>
+                            <button onclick="openModal('${loan.id}', '${loan.borrowers.name}', '${loan.borrowers.phone}', '${loan.borrowers.email}', '${loan.principal_amount}', '${loan.due_date}')">
+                                View / Remind
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error("Dashboard load error:", err);
+            }
         }
+
+        function openModal(loanId, name, phone, email, amount, dueDate) {
+            selectedLoanId = loanId;
+            document.getElementById('modalName').innerText = name;
+            document.getElementById('modalPhone').innerText = phone || 'None';
+            document.getElementById('modalEmail').innerText = email || 'None';
+            document.getElementById('modalAmount').innerText = amount;
+            document.getElementById('modalDueDate').innerText = dueDate;
+            document.getElementById('borrowerModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('borrowerModal').style.display = 'none';
+            selectedLoanId = null;
+        }
+
+        async function triggerManualReminder() {
+            if (!selectedLoanId) return alert('No borrower selected.');
+            const channel = document.getElementById('reminderChannel').value;
+
+            try {
+                const response = await fetch(`/api/loans/${selectedLoanId}/send-reminder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channel })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            } catch (err) {
+                alert(`Failed to send reminder: ${err.message}`);
+            }
+        }
+
+        loadDashboard();
     </script>
 </body>
 </html>
