@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DebtTrack - Smart Loan Ledger</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -33,7 +32,6 @@
             }
         }
     </script>
-    <!-- Font Awesome & Google Fonts -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     
@@ -43,7 +41,6 @@
             background-color: #FAF4E5;
         }
 
-        /* 3D Claymorphic Soft Shadow Elevations */
         .card-3d {
             background: #FFFDF7;
             border: 2px solid #F3E5C8;
@@ -53,27 +50,19 @@
             transform-style: preserve-3d;
         }
 
-        /* 3D Pop-out Hover & Active Press Effect */
         .card-3d:hover {
             transform: translateY(-8px) scale(1.01);
             box-shadow: 0 20px 35px -5px rgba(200, 165, 105, 0.45), 0 8px 0 0 #DFC496;
         }
 
-        /* Interactive 3D Buttons */
         .btn-3d-dark {
             background-color: #1E2530;
             color: #FFFFFF;
             box-shadow: 0 4px 0 0 #0F141C;
             transition: all 0.15s ease;
         }
-        .btn-3d-dark:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 0 0 #0F141C;
-        }
-        .btn-3d-dark:active {
-            transform: translateY(2px);
-            box-shadow: 0 1px 0 0 #0F141C;
-        }
+        .btn-3d-dark:hover { transform: translateY(-2px); box-shadow: 0 6px 0 0 #0F141C; }
+        .btn-3d-dark:active { transform: translateY(2px); box-shadow: 0 1px 0 0 #0F141C; }
 
         .btn-3d-pink {
             background-color: #FDE2E2;
@@ -81,14 +70,8 @@
             box-shadow: 0 4px 0 0 #F8B4B4;
             transition: all 0.15s ease;
         }
-        .btn-3d-pink:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 0 0 #F8B4B4;
-        }
-        .btn-3d-pink:active {
-            transform: translateY(2px);
-            box-shadow: 0 1px 0 0 #F8B4B4;
-        }
+        .btn-3d-pink:hover { transform: translateY(-2px); box-shadow: 0 6px 0 0 #F8B4B4; }
+        .btn-3d-pink:active { transform: translateY(2px); box-shadow: 0 1px 0 0 #F8B4B4; }
 
         .btn-3d-green {
             background-color: #4ADE80;
@@ -96,16 +79,9 @@
             box-shadow: 0 4px 0 0 #22C55E;
             transition: all 0.15s ease;
         }
-        .btn-3d-green:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 0 0 #22C55E;
-        }
-        .btn-3d-green:active {
-            transform: translateY(2px);
-            box-shadow: 0 1px 0 0 #22C55E;
-        }
+        .btn-3d-green:hover { transform: translateY(-2px); box-shadow: 0 6px 0 0 #22C55E; }
+        .btn-3d-green:active { transform: translateY(2px); box-shadow: 0 1px 0 0 #22C55E; }
 
-        /* Modal Pop 3D Animation */
         @keyframes popIn3D {
             0% { transform: scale(0.8) translateY(30px) rotateX(15deg); opacity: 0; }
             100% { transform: scale(1) translateY(0) rotateX(0deg); opacity: 1; }
@@ -117,11 +93,11 @@
 </head>
 <body class="text-slate-800 pb-16 min-h-screen">
 
-    <!-- Top Navigation Header -->
+    <!-- Top Header -->
     <header class="max-w-6xl mx-auto pt-6 px-4">
         <div class="card-3d p-4 flex flex-wrap justify-between items-center gap-4">
             <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-2xl shadow-inner border border-amber-200">
+                <div class="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-2xl border border-amber-200">
                     🐱
                 </div>
                 <div>
@@ -131,6 +107,10 @@
             </div>
 
             <div class="flex items-center gap-3">
+                <!-- Restored + New Loan Button -->
+                <button onclick="openNewModal()" class="btn-3d-green font-black text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2">
+                    <i class="fa-solid fa-plus text-xs"></i> New Loan
+                </button>
                 <button class="btn-3d-dark px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2">
                     <i class="fa-solid fa-lock text-amber-400"></i> Privacy Off
                 </button>
@@ -141,52 +121,34 @@
         </div>
     </header>
 
-    <!-- Main Dashboard Body -->
+    <!-- Main Dashboard -->
     <main class="max-w-6xl mx-auto px-4 mt-6 space-y-6">
-
-        <!-- Top Metrics Cards Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Total Capital -->
             <div class="card-3d p-5">
-                <div class="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">
-                    <span>💰</span> TOTAL CAPITAL
-                </div>
-                <p id="totalCapitalText" class="text-2xl font-black text-slate-800 mt-2">₱1,000.00</p>
+                <div class="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">💰 TOTAL CAPITAL</div>
+                <p id="totalCapitalText" class="text-2xl font-black text-slate-800 mt-2">₱0.00</p>
             </div>
-
-            <!-- Interest -->
             <div class="card-3d p-5">
-                <div class="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">
-                    <span>📈</span> INTEREST
-                </div>
-                <p id="totalInterestText" class="text-2xl font-black text-emerald-500 mt-2">₱100.00</p>
+                <div class="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">📈 INTEREST</div>
+                <p id="totalInterestText" class="text-2xl font-black text-emerald-500 mt-2">₱0.00</p>
             </div>
-
-            <!-- Borrowers -->
             <div class="card-3d p-5">
-                <div class="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">
-                    <span>🐾</span> BORROWERS
-                </div>
-                <p id="totalBorrowersText" class="text-2xl font-black text-slate-800 mt-2">Total: 1</p>
+                <div class="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">🐾 BORROWERS</div>
+                <p id="totalBorrowersText" class="text-2xl font-black text-slate-800 mt-2">Total: 0</p>
             </div>
-
-            <!-- Status Breakdown -->
             <div class="card-3d p-5">
-                <div class="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
-                    STATUS BREAKDOWN
-                </div>
+                <div class="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">STATUS BREAKDOWN</div>
                 <div class="flex items-center gap-2 font-black text-xs">
                     <span id="actBadge" class="bg-badgeAct text-badgeActText px-2.5 py-1 rounded-xl">Act: 0</span>
                     <span id="dueBadge" class="bg-badgeDue text-badgeDueText px-2.5 py-1 rounded-xl">Due: 0</span>
-                    <span id="overBadge" class="bg-badgeOver text-badgeOverText px-2.5 py-1 rounded-xl">Over: 1</span>
+                    <span id="overBadge" class="bg-badgeOver text-badgeOverText px-2.5 py-1 rounded-xl">Over: 0</span>
                 </div>
             </div>
         </div>
 
-        <!-- Search & Filter Bar -->
         <div class="card-3d p-4 flex flex-wrap items-center justify-between gap-4">
             <div class="relative flex-grow max-w-md">
-                <input type="text" placeholder="🔍 Search borrower name..." class="w-full bg-darkNav text-white placeholder-slate-400 text-xs font-bold rounded-2xl px-4 py-3 outline-none shadow-inner">
+                <input type="text" placeholder="🔍 Search borrower name..." class="w-full bg-darkNav text-white placeholder-slate-400 text-xs font-bold rounded-2xl px-4 py-3 outline-none">
             </div>
             <div class="flex items-center gap-2 text-xs font-bold text-slate-500">
                 <span>Sort By:</span>
@@ -197,42 +159,46 @@
             </div>
         </div>
 
-        <!-- Interactive 3D Borrower Cards Grid -->
-        <div id="borrowerGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Cards render here dynamically with pop-out hover effects -->
-        </div>
+        <div id="borrowerGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </main>
 
-    <!-- Interactive 3D Pop Modal -->
+    <!-- Interactive 3D Modal (Used for both Editing Borrower Details & New Loans) -->
     <div id="borrowerModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="card-3d modal-pop max-w-sm w-full p-6 space-y-4 relative">
             <div class="flex justify-between items-center border-b border-cream-200 pb-3">
-                <h3 class="font-extrabold text-slate-800 text-base flex items-center gap-2">
+                <h3 id="modalTitle" class="font-extrabold text-slate-800 text-base flex items-center gap-2">
                     <span>🦊</span> Borrower Details
                 </h3>
                 <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-cream-200 text-slate-500 font-black hover:scale-110 transition">✕</button>
             </div>
 
-            <div class="space-y-2.5 text-xs font-bold">
-                <div class="flex justify-between p-2.5 rounded-xl bg-cream-100 border border-cream-200">
-                    <span class="text-slate-400">Borrower</span>
-                    <span id="modalName" class="text-slate-800"></span>
-                </div>
-                <div class="flex justify-between p-2.5 rounded-xl bg-cream-100 border border-cream-200">
-                    <span class="text-slate-400">Phone</span>
-                    <span id="modalPhone" class="text-slate-800"></span>
-                </div>
-                <div class="flex justify-between p-2.5 rounded-xl bg-cream-100 border border-cream-200">
-                    <span class="text-slate-400">Principal</span>
-                    <span id="modalPrincipal" class="text-slate-800"></span>
-                </div>
-                <div class="flex justify-between p-2.5 rounded-xl bg-cream-100 border border-cream-200">
-                    <span class="text-slate-400">Due Date</span>
-                    <span id="modalDueDate" class="text-amber-600"></span>
+            <form onsubmit="handleFormSubmit(event)" class="space-y-3 text-xs font-bold">
+                <input type="hidden" id="formLoanId">
+                <input type="hidden" id="formBorrowerId">
+
+                <div>
+                    <label class="block text-slate-400 mb-1">Borrower Name</label>
+                    <input type="text" id="inputName" required class="w-full bg-cream-100 border border-cream-200 rounded-xl p-2.5 text-slate-800 font-black outline-none focus:ring-2 focus:ring-amber-400">
                 </div>
 
-                <!-- Custom Manual Reminder Trigger -->
-                <div class="pt-2">
+                <div>
+                    <label class="block text-slate-400 mb-1">Phone Number</label>
+                    <input type="text" id="inputPhone" placeholder="09686864240 or +639686864240" required class="w-full bg-cream-100 border border-cream-200 rounded-xl p-2.5 text-slate-800 font-black outline-none focus:ring-2 focus:ring-amber-400">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Principal (₱)</label>
+                        <input type="number" id="inputAmount" step="0.01" required class="w-full bg-cream-100 border border-cream-200 rounded-xl p-2.5 text-slate-800 font-black outline-none focus:ring-2 focus:ring-amber-400">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Due Date</label>
+                        <input type="date" id="inputDueDate" required class="w-full bg-cream-100 border border-cream-200 rounded-xl p-2.5 text-slate-800 font-black outline-none focus:ring-2 focus:ring-amber-400">
+                    </div>
+                </div>
+
+                <!-- Manual Reminder Dispatcher -->
+                <div id="reminderBox" class="pt-2 border-t border-cream-200">
                     <label class="block text-[10px] font-black uppercase text-slate-400 mb-1">Dispatch Custom Reminder</label>
                     <div class="flex gap-2">
                         <select id="reminderChannel" class="bg-darkNav text-white text-xs font-bold rounded-xl px-3 py-2 outline-none flex-grow">
@@ -245,25 +211,32 @@
                         </button>
                     </div>
                 </div>
-            </div>
 
-            <button onclick="closeModal()" class="w-full btn-3d-pink font-black text-xs py-2.5 rounded-xl mt-2">
-                Close
-            </button>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="w-full btn-3d-dark font-black text-xs py-2.5 rounded-xl">
+                        Save Changes
+                    </button>
+                    <button type="button" onclick="closeModal()" class="w-full btn-3d-pink font-black text-xs py-2.5 rounded-xl">
+                        Cancel
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Application Script -->
     <script>
-        let selectedLoanId = null;
+        let isEditMode = false;
 
         async function loadDashboard() {
             try {
                 const res = await fetch('/api/dashboard');
                 const data = await res.json();
 
-                // Stats Update
+                let totalInterest = 0;
+                data.loans.forEach(l => totalInterest += (parseFloat(l.principal_amount) * 0.10));
+
                 document.getElementById('totalCapitalText').innerText = `₱${data.stats.totalCapitalLent.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                document.getElementById('totalInterestText').innerText = `₱${totalInterest.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
                 document.getElementById('totalBorrowersText').innerText = `Total: ${data.stats.totalBorrowers}`;
                 document.getElementById('actBadge').innerText = `Act: ${data.stats.activeCount}`;
                 document.getElementById('dueBadge').innerText = `Due: ${data.stats.dueTodayCount}`;
@@ -277,26 +250,22 @@
 
                 grid.innerHTML = data.loans.map(loan => {
                     const principal = parseFloat(loan.principal_amount);
-                    const interest = principal * 0.10; // 10% Interest
-                    const overdueDays = 6; // Dynamic calculated day diff
-                    const overdueFee = 180;
+                    const interest = principal * 0.10;
+                    const overdueFee = loan.status === 'Overdue' ? 180 : 0;
                     const totalPayable = principal + interest + overdueFee;
 
-                    let statusClass = "bg-badgeOver text-badgeOverText";
-                    if (loan.status === 'Active') statusClass = "bg-badgeAct text-badgeActText";
+                    let statusClass = "bg-badgeAct text-badgeActText";
                     if (loan.status === 'Due Today') statusClass = "bg-badgeDue text-badgeDueText";
+                    if (loan.status === 'Overdue') statusClass = "bg-badgeOver text-badgeOverText";
 
                     return `
                         <div class="card-3d p-5 space-y-4 relative">
-                            <!-- Card Header -->
                             <div class="flex justify-between items-start">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-2xl bg-darkNav flex items-center justify-center text-lg shadow-md">
-                                        🦊
-                                    </div>
+                                    <div class="w-10 h-10 rounded-2xl bg-darkNav flex items-center justify-center text-lg shadow-md">🦊</div>
                                     <div>
-                                        <h3 class="font-black text-slate-800 text-sm leading-snug">${loan.borrowers.name}</h3>
-                                        <p class="text-xs font-bold text-slate-400">${loan.borrowers.phone || 'N/A'}</p>
+                                        <h3 class="font-black text-slate-800 text-sm leading-snug">${loan.borrowers?.name || 'Unknown'}</h3>
+                                        <p class="text-xs font-bold text-slate-400">${loan.borrowers?.phone || 'N/A'}</p>
                                     </div>
                                 </div>
                                 <span class="${statusClass} px-3 py-1 rounded-full text-xs font-black">${loan.status}</span>
@@ -304,36 +273,21 @@
 
                             <hr class="border-cream-200">
 
-                            <!-- Loan Breakdown Info -->
                             <div class="grid grid-cols-2 gap-2 text-xs font-bold">
-                                <div>
-                                    <span class="text-slate-400 block">Principal</span>
-                                    <span class="text-slate-800 font-black text-sm">₱${principal.toLocaleString()}</span>
-                                </div>
-                                <div>
-                                    <span class="text-slate-400 block">Interest (10%)</span>
-                                    <span class="text-emerald-500 font-black text-sm">₱${interest.toLocaleString()}</span>
-                                </div>
-                                <div>
-                                    <span class="text-slate-400 block">Term</span>
-                                    <span class="text-slate-400">1week</span>
-                                </div>
-                                <div>
-                                    <span class="text-slate-400 block">Due Date</span>
-                                    <span class="text-amber-500 font-black">${loan.due_date}</span>
-                                </div>
+                                <div><span class="text-slate-400 block">Principal</span><span class="text-slate-800 font-black text-sm">₱${principal.toLocaleString()}</span></div>
+                                <div><span class="text-slate-400 block">Interest (10%)</span><span class="text-emerald-500 font-black text-sm">₱${interest.toLocaleString()}</span></div>
+                                <div><span class="text-slate-400 block">Term</span><span class="text-slate-400">1week</span></div>
+                                <div><span class="text-slate-400 block">Due Date</span><span class="text-amber-500 font-black">${loan.due_date}</span></div>
                             </div>
 
-                            <!-- Overdue Alert Pill -->
                             ${loan.status === 'Overdue' ? `
                                 <div class="bg-rose-100/80 border border-rose-200 text-rose-700 p-2.5 rounded-2xl text-[11px] font-black flex items-center gap-2">
-                                    <span>⚠️</span> Overdue Fee (+30/1k/day): ₱${overdueFee} (${overdueDays}d)
+                                    <span>⚠️</span> Overdue Fee (+30/1k/day): ₱180 (6d)
                                 </div>
                             ` : ''}
 
                             <hr class="border-cream-200">
 
-                            <!-- Footer & 3D Interactive Buttons -->
                             <div class="flex items-center justify-between pt-1">
                                 <div>
                                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Payable</span>
@@ -341,31 +295,45 @@
                                 </div>
 
                                 <div class="flex items-center gap-2">
-                                    <button onclick="quickRemind('${loan.id}', '${loan.borrowers.name}')" class="btn-3d-green font-black text-xs px-3 py-2 rounded-xl flex items-center gap-1">
-                                        ⚡ Remind
-                                    </button>
-                                    <button onclick="openModal('${loan.id}', '${loan.borrowers.name}', '${loan.borrowers.phone}', '${loan.principal_amount}', '${loan.due_date}')" class="btn-3d-dark font-black text-xs px-3.5 py-2 rounded-xl">
-                                        Edit
-                                    </button>
-                                    <button class="btn-3d-pink font-black text-xs px-3 py-2 rounded-xl">
-                                        Delete
-                                    </button>
+                                    <button onclick="quickRemind('${loan.id}', '${loan.borrowers?.name}')" class="btn-3d-green font-black text-xs px-3 py-2 rounded-xl">⚡ Remind</button>
+                                    <button onclick="openEditModal('${loan.id}', '${loan.borrowers?.id}', '${loan.borrowers?.name}', '${loan.borrowers?.phone || ''}', '${loan.principal_amount}', '${loan.due_date}')" class="btn-3d-dark font-black text-xs px-3.5 py-2 rounded-xl">Edit</button>
+                                    <button onclick="deleteLoan('${loan.id}')" class="btn-3d-pink font-black text-xs px-3 py-2 rounded-xl">Delete</button>
                                 </div>
                             </div>
                         </div>
                     `;
                 }).join('');
             } catch (err) {
-                console.error("Error loading dashboard:", err);
+                console.error("Dashboard error:", err);
             }
         }
 
-        function openModal(loanId, name, phone, principal, dueDate) {
-            selectedLoanId = loanId;
-            document.getElementById('modalName').innerText = name;
-            document.getElementById('modalPhone').innerText = phone || 'N/A';
-            document.getElementById('modalPrincipal').innerText = `₱${parseFloat(principal).toLocaleString()}`;
-            document.getElementById('modalDueDate').innerText = dueDate;
+        function openEditModal(loanId, borrowerId, name, phone, amount, dueDate) {
+            isEditMode = true;
+            document.getElementById('modalTitle').innerHTML = `<span>✏️</span> Edit Borrower Details`;
+            document.getElementById('formLoanId').value = loanId;
+            document.getElementById('formBorrowerId').value = borrowerId;
+            document.getElementById('inputName').value = name;
+            document.getElementById('inputPhone').value = phone;
+            document.getElementById('inputAmount').value = amount;
+            document.getElementById('inputDueDate').value = dueDate;
+            document.getElementById('reminderBox').classList.remove('hidden');
+
+            const modal = document.getElementById('borrowerModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function openNewModal() {
+            isEditMode = false;
+            document.getElementById('modalTitle').innerHTML = `<span>➕</span> Add New Loan`;
+            document.getElementById('formLoanId').value = '';
+            document.getElementById('formBorrowerId').value = '';
+            document.getElementById('inputName').value = '';
+            document.getElementById('inputPhone').value = '';
+            document.getElementById('inputAmount').value = '';
+            document.getElementById('inputDueDate').value = '';
+            document.getElementById('reminderBox').classList.add('hidden');
 
             const modal = document.getElementById('borrowerModal');
             modal.classList.remove('hidden');
@@ -376,7 +344,48 @@
             const modal = document.getElementById('borrowerModal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
-            selectedLoanId = null;
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const loanId = document.getElementById('formLoanId').value;
+            const borrower_id = document.getElementById('formBorrowerId').value;
+            const name = document.getElementById('inputName').value;
+            const phone = document.getElementById('inputPhone').value;
+            const principal_amount = document.getElementById('inputAmount').value;
+            const due_date = document.getElementById('inputDueDate').value;
+
+            const url = isEditMode ? `/api/loans/${loanId}` : '/api/loans';
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ borrower_id, name, phone, principal_amount, due_date })
+                });
+
+                const result = await res.json();
+                if (res.ok) {
+                    alert(isEditMode ? 'Saved successfully!' : 'Loan added!');
+                    closeModal();
+                    loadDashboard();
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            } catch (err) {
+                alert(`Action failed: ${err.message}`);
+            }
+        }
+
+        async function deleteLoan(loanId) {
+            if (!confirm("Are you sure you want to delete this borrower record?")) return;
+            try {
+                const res = await fetch(`/api/loans/${loanId}`, { method: 'DELETE' });
+                if (res.ok) loadDashboard();
+            } catch (err) {
+                alert(`Delete failed: ${err.message}`);
+            }
         }
 
         async function quickRemind(loanId, borrowerName) {
@@ -392,16 +401,17 @@
                 const result = await response.json();
                 alert(response.ok ? result.message : `Error: ${result.error}`);
             } catch (err) {
-                alert(`Failed to send reminder: ${err.message}`);
+                alert(`Failed: ${err.message}`);
             }
         }
 
         async function triggerManualReminder() {
-            if (!selectedLoanId) return alert('No borrower selected.');
+            const loanId = document.getElementById('formLoanId').value;
+            if (!loanId) return alert('No active loan selected');
             const channel = document.getElementById('reminderChannel').value;
 
             try {
-                const response = await fetch(`/api/loans/${selectedLoanId}/send-reminder`, {
+                const response = await fetch(`/api/loans/${loanId}/send-reminder`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ channel })
@@ -410,7 +420,7 @@
                 const result = await response.json();
                 alert(response.ok ? result.message : `Error: ${result.error}`);
             } catch (err) {
-                alert(`Failed to send reminder: ${err.message}`);
+                alert(`Failed: ${err.message}`);
             }
         }
 
